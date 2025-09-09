@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SVG Drawing Tool</title>
+<style>
+  body{font-family:system-ui,Arial,sans-serif}
+  .wrap{border:2px solid #333; margin:20px; padding:14px}
+  h2{margin:0 0 12px}
+  .board{border:2px solid #777; background:#f7f7f7}
+  .toolbar{display:flex; gap:10px; margin:10px 0}
+  .toolbar input[type="color"], .toolbar input[type="range"]{vertical-align:middle}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>SVG Drawing Tool</h2>
+
+    <div class="toolbar">
+      <label>Color <input id="color" type="color" value="#1e88e5"></label>
+      <label>Width <input id="width" type="range" min="1" max="16" value="3"></label>
+      <button id="clear">Clear</button>
+    </div>
+
+    <!-- Drawing area -->
+    <svg id="pad" class="board" width="800" height="420"></svg>
+  </div>
+
+<script>
+(() => {
+  const svg   = document.getElementById('pad');
+  const color = document.getElementById('color');
+  const width = document.getElementById('width');
+  const clear = document.getElementById('clear');
+
+  let drawing = false;
+  let pathEl  = null;
+
+  // Convert page/touch coordinates to SVG coordinates
+  function toSvgPoint(evt){
+    const pt = svg.createSVGPoint();
+    const e  = evt.touches ? evt.touches[0] : evt;
+    pt.x = e.clientX; pt.y = e.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+
+  function startDraw(evt){
+    evt.preventDefault();
+    drawing = true;
+    const p = toSvgPoint(evt);
+
+    pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    pathEl.setAttribute('fill', 'none');
+    pathEl.setAttribute('stroke', color.value);
+    pathEl.setAttribute('stroke-width', width.value);
+    pathEl.setAttribute('stroke-linecap', 'round');
+    pathEl.setAttribute('stroke-linejoin', 'round');
+    pathEl.setAttribute('d', `M ${p.x} ${p.y}`);
+    svg.appendChild(pathEl);
+  }
+
+  function moveDraw(evt){
+    if(!drawing) return;
+    const p = toSvgPoint(evt);
+    pathEl.setAttribute('d', pathEl.getAttribute('d') + ` L ${p.x} ${p.y}`);
+  }
+
+  function endDraw(){
+    drawing = false;
+    pathEl = null;
+  }
+
+  // Mouse events
+  svg.addEventListener('mousedown', startDraw);
+  svg.addEventListener('mousemove', moveDraw);
+  window.addEventListener('mouseup', endDraw);
+
+  // Touch events (mobile)
+  svg.addEventListener('touchstart', startDraw, {passive:false});
+  svg.addEventListener('touchmove',  moveDraw,  {passive:false});
+  window.addEventListener('touchend', endDraw);
+
+  // Clear button
+  clear.addEventListener('click', () => { while (svg.lastChild) svg.removeChild(svg.lastChild); });
+})();
+</script>
+</body>
+</html>
